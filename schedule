@@ -1,0 +1,147 @@
+import telebot
+from telebot import types
+from datetime import datetime, timedelta
+from keep_alive import keep_alive
+
+
+keep_alive()
+
+TOKEN = '6883764848:AAGyP1JiGBcgrGDNGAIIEKGhN0kPPgRkbCs'
+bot = telebot.TeleBot(TOKEN)
+
+schedule = {
+    'even_week': {
+        '0': [
+            {'time': '09:45-11:20', 'subject': 'Теоретические основы электротехники (практ.)', 'room': '6313'},
+            {'time': '11:35-13:10', 'subject': 'Физика (лекц.)', 'room': '6513'},
+            {'time': '13:40-15:15', 'subject': 'Физика (практ.)', 'room': '6513'},
+        ],
+        '1': [
+            {'time': '08:00-09:35', 'subject': 'Математика (лекц.)', 'room': '6152'},
+            {'time': '09:45-11:20', 'subject': 'Математика (практ.)', 'room': '6152'},
+        ],
+        '2': [
+            {'time': '09:45-11:20', 'subject': 'Иностранный язык (английский) (практ.)', 'room': '6415'},
+            {'time': '11:35-13:10', 'subject': 'Методы математический физики (лекц.)', 'room': '6508'},
+            {'time': '13:40-15:15', 'subject': 'Методы математический физики (практ.)', 'room': '6508'},
+        ],
+        '3': [
+            {'time': '11:10', 'subject': 'Физ-ра', 'room': 'спортзал 6 учебного корпуса'},
+        ],
+        '4': [
+            {'time': '9:20-10:55', 'subject': 'Физическая химия (лекц.)', 'room': '1331'},
+            {'time': '11:10-12:45', 'subject': 'Физическая химия (лабор.)', 'room': '1331'},
+            {'time': '13:15-14:50', 'subject': 'Физическая химия (практ.)', 'room': '1331'},
+            {'time': '15:00-16:35', 'subject': 'Физическая химия (лекц.)', 'room': '1331'},
+            {'time': '16:45-18:20', 'subject': 'Физическая химия (лекц.)', 'room': '1331'},
+        ],
+        '5': [
+            {'time': '9:20', 'subject': 'Физика конденсированного состояния (лекц., практ.)', 'room': '1221'},
+            {'time': '11:10', 'subject': 'Физика конденсированного состояния (лабор.)', 'room': '1221'},
+        ],
+    },
+    'odd_week': {
+        '0': [
+            {'time': '08:00-09:35', 'subject': 'Теоретические основы электротехники (лекц.)', 'room': '6313'},
+            {'time': '09:45-11:20', 'subject': 'Теоретические основы электротехники (практ.)', 'room': '6313'},
+            {'time': '11:35-13:10', 'subject': 'Физика (лекц.)', 'room': '6513'},
+            {'time': '13:40-15:15', 'subject': 'Физика (лабор.)', 'room': '6257'},
+        ],
+        '1': [
+            {'time': '08:00-09:35', 'subject': 'Математика (лекц.)', 'room': '6152'},
+            {'time': '09:45-11:20', 'subject': 'Математика (практ.)', 'room': '6152'},
+        ],
+        '2': [
+            {'time': '09:45-11:20', 'subject': 'Иностранный язык (английский) (практ.)', 'room': '6415'},
+            {'time': '11:35-13:10', 'subject': 'Методы математический физики (лекц.)', 'room': '6508'},
+            {'time': '13:40-15:15', 'subject': 'Методы математический физики (практ.)', 'room': '6508'},
+        ],
+        '3': [
+            {'time': '11:10', 'subject': 'Физ-ра', 'room': 'спортзал 6 учебного корпуса'},
+        ],
+        '4': [
+            {'time': '9:20-10:55', 'subject': 'Час куратора (3, 7, 9, 15 нед.)', 'room': '1331'},
+            {'time': '11:10-12:45', 'subject': 'Теоретические основы электротехники (4 ч. лабор.)', 'room': '1116а'},
+        ],
+        '5': [
+            {'time': '9:20', 'subject': 'Физика конденсированного состояния (лекц., практ.)', 'room': '1221'},
+            {'time': '11:10', 'subject': 'Физика конденсированного состояния (лабор.)', 'room': '1221'},
+        ],
+    }
+}
+
+def create_keyboard():
+    keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+    today_button = types.KeyboardButton('Расписание на сегодня')
+    this_week_button = types.KeyboardButton('Расписание на эту неделю')
+    next_week_button = types.KeyboardButton('Расписание на следующую неделю')
+    keyboard.add(today_button, this_week_button, next_week_button)
+    return keyboard
+
+def get_week_name(week):
+    return 'Четная' if week == 'even_week' else 'Нечетная'
+
+def get_current_day():
+    # Используем 0 для понедельника, 1 для вторника и так далее
+    return datetime.now().weekday()
+
+def get_day_schedule(week, requested_day):
+    current_day = get_current_day()
+
+    if requested_day != 'Расписание на сегодня':
+        return "Извините, расписание на запрошенный день не найдено. Показано расписание на сегодня."
+
+    schedule_info = schedule[week].get(str(current_day), [])
+    reply_text = f"Расписание на {get_weekday_name(current_day)} ({get_week_name(week)} неделя):\n"
+
+    for i, lesson in enumerate(schedule_info, start=1):
+        reply_text += f"{get_emoji_number(i)}. Время: {lesson['time']}\n" \
+                      f"   Предмет: {lesson['subject']}\n" \
+                      f"   Аудитория: {lesson['room']}\n\n"
+
+    return reply_text
+
+def get_weekday_name(weekday_number):
+    days_in_russian = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
+    return days_in_russian[int(weekday_number)]
+
+def get_emoji_number(number):
+    emoji_numbers = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣']
+    return emoji_numbers[number - 1]
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Привет! Я бот с расписанием. Выберите опцию с помощью кнопок ниже.", reply_markup=create_keyboard())
+
+@bot.message_handler(func=lambda message: True)
+def handle_messages(message):
+    user_id = message.from_user.id
+    current_week = user_id % 2
+
+    if message.text == 'Расписание на сегодня':
+        schedule_info = get_day_schedule('even_week' if current_week == 0 else 'odd_week', message.text)
+        bot.send_message(message.chat.id, schedule_info, reply_markup=create_keyboard())
+    elif message.text == 'Расписание на эту неделю':
+        current_week_schedule = schedule['even_week'] if current_week == 0 else schedule['odd_week']
+        reply_text = f"Расписание на эту неделю ({get_week_name('even_week' if current_week == 0 else 'odd_week')}):\n"
+        for day in sorted(current_week_schedule.keys()):
+            reply_text += f"\n{get_weekday_name(day)}:\n"
+            for i, lesson in enumerate(current_week_schedule[day], start=1):
+                reply_text += f"{get_emoji_number(i)}. Время: {lesson['time']}\n" \
+                              f"   Предмет: {lesson['subject']}\n" \
+                              f"   Аудитория: {lesson['room']}\n\n"
+        bot.send_message(message.chat.id, reply_text, reply_markup=create_keyboard())
+    elif message.text == 'Расписание на следующую неделю':
+        next_week_schedule = schedule['odd_week'] if current_week == 0 else schedule['even_week']
+        reply_text = f"Расписание на следующую неделю ({get_week_name('odd_week' if current_week == 0 else 'even_week')}):\n"
+        for day in sorted(next_week_schedule.keys()):
+            reply_text += f"\n{get_weekday_name(day)}:\n"
+            for i, lesson in enumerate(next_week_schedule[day], start=1):
+                reply_text += f"{get_emoji_number(i)}. Время: {lesson['time']}\n" \
+                              f"   Предмет: {lesson['subject']}\n" \
+                              f"   Аудитория: {lesson['room']}\n\n"
+        bot.send_message(message.chat.id, reply_text, reply_markup=create_keyboard())
+    else:
+        bot.send_message(message.chat.id, "Для начала работы введите команду /start", reply_markup=create_keyboard())
+
+bot.polling()
